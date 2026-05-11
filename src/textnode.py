@@ -51,3 +51,41 @@ def text_node_to_html_node(text_node):
 		)
 
 	raise Exception("Unsupported text type")
+
+
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+	"""Split any TextType.TEXT nodes in old_nodes by the given delimiter.
+
+	Returns a new list of TextNode objects where text sections between
+	delimiter pairs become nodes with text_type, and other text remains as TEXT.
+	Raises Exception on unmatched delimiter.
+	"""
+	new_nodes = []
+
+	for node in old_nodes:
+		# Only operate on raw text nodes
+		if node.text_type != TextType.TEXT:
+			new_nodes.append(node)
+			continue
+
+		parts = node.text.split(delimiter)
+		# No delimiter found, keep node as-is
+		if len(parts) == 1:
+			new_nodes.append(node)
+			continue
+
+		n_delims = len(parts) - 1
+		# delimiters must come in pairs
+		if n_delims % 2 != 0:
+			raise Exception(f"Unmatched delimiter '{delimiter}' in text: {node.text}")
+
+		for i, part in enumerate(parts):
+			if i % 2 == 0:
+				# plain text segment
+				if part != "":
+					new_nodes.append(TextNode(part, TextType.TEXT))
+			else:
+				# delimited segment becomes the provided text_type
+				new_nodes.append(TextNode(part, text_type))
+
+	return new_nodes
