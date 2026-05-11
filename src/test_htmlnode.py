@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -53,6 +53,57 @@ class TestLeafNode(unittest.TestCase):
     def test_leaf_repr(self):
         node = LeafNode("p", "Hello")
         self.assertEqual(repr(node), "LeafNode('p', 'Hello', None)")
+
+
+class TestParentNode(unittest.TestCase):
+    def test_to_html_with_children(self):
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+
+    def test_to_html_with_grandchildren(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
+
+    def test_to_html_with_multiple_children(self):
+        parent_node = ParentNode(
+            "div",
+            [
+                LeafNode("b", "bold"),
+                LeafNode(None, "plain"),
+                LeafNode("i", "italic"),
+            ],
+        )
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><b>bold</b>plain<i>italic</i></div>",
+        )
+
+    def test_to_html_with_empty_children(self):
+        parent_node = ParentNode("div", [])
+        self.assertEqual(parent_node.to_html(), "<div></div>")
+
+    def test_to_html_missing_tag(self):
+        parent_node = ParentNode(None, [LeafNode("span", "child")])
+        with self.assertRaises(ValueError):
+            parent_node.to_html()
+
+    def test_to_html_missing_children(self):
+        parent_node = ParentNode("div", None)
+        with self.assertRaises(ValueError):
+            parent_node.to_html()
+
+    def test_parent_repr(self):
+        parent_node = ParentNode("div", [LeafNode("span", "child")])
+        self.assertEqual(
+            repr(parent_node),
+            "ParentNode('div', [LeafNode('span', 'child', None)], None)",
+        )
 
 
 if __name__ == "__main__":
