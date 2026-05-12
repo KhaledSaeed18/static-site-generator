@@ -52,9 +52,22 @@ def generate_page(from_path, template_path, dest_path):
 		output_file.write(page)
 
 
+def generate_pages_recursive(content_dir, template_path, public_dir):
+	for entry in os.listdir(content_dir):
+		content_path = os.path.join(content_dir, entry)
+
+		if os.path.isfile(content_path) and content_path.endswith(".md"):
+			destination_path = os.path.join(public_dir, entry[:-3] + ".html")
+			generate_page(content_path, template_path, destination_path)
+		elif os.path.isdir(content_path):
+			child_public_dir = os.path.join(public_dir, entry)
+			os.makedirs(child_public_dir, exist_ok=True)
+			generate_pages_recursive(content_path, template_path, child_public_dir)
+
+
 def main():
 	copy_directory_contents("static", "public")
-	generate_page("content/index.md", "template.html", "public/index.html")
+	generate_pages_recursive("content", "template.html", "public")
 
 
 if __name__ == "__main__":
