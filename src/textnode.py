@@ -12,6 +12,14 @@ class TextType(Enum):
 	LINK = "link"
 	IMAGE = "image"
 
+class BlockType(Enum):
+	PARAGRAPH = "paragraph"
+	HEADING = "heading"
+	CODE = "code"
+	QUOTE = "quote"
+	UNORDERED_LIST = "unordered_list"
+	ORDERED_LIST = "ordered_list"
+
 
 class TextNode:
 	def __init__(self, text, text_type, url=None):
@@ -234,3 +242,45 @@ def markdown_to_blocks(markdown):
 			filtered_blocks.append(stripped)
 	
 	return filtered_blocks
+
+
+def block_to_block_type(block):
+	"""Determine the type of a markdown block.
+	
+	Args:
+		block: A single block of markdown text (with leading/trailing whitespace already stripped)
+	
+	Returns:
+		A BlockType enum value representing the type of block
+	"""
+	lines = block.split("\n")
+	
+	# Check for heading (1-6 # followed by space)
+	if re.match(r"^#{1,6} ", block):
+		return BlockType.HEADING
+	
+	# Check for code block (starts with ``` and ends with ```)
+	if block.startswith("```") and block.endswith("```"):
+		return BlockType.CODE
+	
+	# Check for quote (every line starts with >)
+	if all(line.startswith(">") for line in lines):
+		return BlockType.QUOTE
+	
+	# Check for unordered list (every line starts with - followed by space)
+	if all(line.startswith("- ") for line in lines):
+		return BlockType.UNORDERED_LIST
+	
+	# Check for ordered list (every line starts with number. followed by space, incrementing from 1)
+	is_ordered_list = True
+	for i, line in enumerate(lines):
+		expected_number = i + 1
+		if not re.match(rf"^{expected_number}\. ", line):
+			is_ordered_list = False
+			break
+	
+	if is_ordered_list:
+		return BlockType.ORDERED_LIST
+	
+	# Default to paragraph
+	return BlockType.PARAGRAPH

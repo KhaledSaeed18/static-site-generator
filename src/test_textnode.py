@@ -4,11 +4,13 @@ from htmlnode import LeafNode
 from textnode import (
     TextNode,
     TextType,
+    BlockType,
     text_node_to_html_node,
     split_nodes_image,
     split_nodes_link,
     text_to_textnodes,
     markdown_to_blocks,
+    block_to_block_type,
 )
 
 
@@ -449,6 +451,108 @@ This is the same paragraph on a new line
                 "- This is a list\n- with items",
             ],
         )
+
+
+class TestBlockToBlockType(unittest.TestCase):
+    def test_heading_h1(self):
+        block = "# This is a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+
+    def test_heading_h2(self):
+        block = "## This is a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+
+    def test_heading_h6(self):
+        block = "###### This is a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+
+    def test_not_heading_no_space(self):
+        block = "#This is not a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_not_heading_too_many_hashes(self):
+        block = "####### This is not a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_code_block(self):
+        block = "```\ncode here\nmore code\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_code_block_single_line(self):
+        block = "```python\nprint('hello')\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_not_code_missing_closing(self):
+        block = "```\ncode here"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_quote_single_line(self):
+        block = "> This is a quote"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_quote_multiline(self):
+        block = "> This is a quote\n> with multiple lines\n> of quoted text"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_quote_no_space_after_gt(self):
+        block = ">This is a quote\n>with no space"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_not_quote_missing_gt_on_line(self):
+        block = "> This is a quote\nBut this line is not"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_unordered_list(self):
+        block = "- Item 1\n- Item 2\n- Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_unordered_list_single_item(self):
+        block = "- Single item"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_not_unordered_list_no_space(self):
+        block = "-Item without space\n-Another item"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_not_unordered_list_missing_dash(self):
+        block = "- Item 1\n* Item 2"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_ordered_list(self):
+        block = "1. Item 1\n2. Item 2\n3. Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_ordered_list_single_item(self):
+        block = "1. Single item"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_not_ordered_list_wrong_starting_number(self):
+        block = "2. Item 1\n3. Item 2"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_not_ordered_list_wrong_sequence(self):
+        block = "1. Item 1\n3. Item 3"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_not_ordered_list_no_space(self):
+        block = "1.Item without space\n2.Another item"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_not_ordered_list_wrong_delimiter(self):
+        block = "1) Item 1\n2) Item 2"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph_plain_text(self):
+        block = "This is a plain text paragraph"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph_with_formatting(self):
+        block = "This is a paragraph with **bold** and _italic_ text"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph_multiline(self):
+        block = "This is a paragraph\nwith multiple lines\nof text"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
