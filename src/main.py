@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 
 from textnode import markdown_to_html_node
 
@@ -30,7 +31,7 @@ def extract_title(markdown):
 	raise Exception("No h1 header found in markdown")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
 	print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
 	with open(from_path, "r", encoding="utf-8") as markdown_file:
@@ -43,6 +44,8 @@ def generate_page(from_path, template_path, dest_path):
 	title = extract_title(markdown)
 
 	page = template.replace("{{ Title }}", title).replace("{{ Content }}", content)
+	page = page.replace('href="/', f'href="{basepath}')
+	page = page.replace('src="/', f'src="{basepath}')
 
 	destination_dir = os.path.dirname(dest_path)
 	if destination_dir:
@@ -52,22 +55,23 @@ def generate_page(from_path, template_path, dest_path):
 		output_file.write(page)
 
 
-def generate_pages_recursive(content_dir, template_path, public_dir):
+def generate_pages_recursive(content_dir, template_path, public_dir, basepath):
 	for entry in os.listdir(content_dir):
 		content_path = os.path.join(content_dir, entry)
 
 		if os.path.isfile(content_path) and content_path.endswith(".md"):
 			destination_path = os.path.join(public_dir, entry[:-3] + ".html")
-			generate_page(content_path, template_path, destination_path)
+			generate_page(content_path, template_path, destination_path, basepath)
 		elif os.path.isdir(content_path):
 			child_public_dir = os.path.join(public_dir, entry)
 			os.makedirs(child_public_dir, exist_ok=True)
-			generate_pages_recursive(content_path, template_path, child_public_dir)
+			generate_pages_recursive(content_path, template_path, child_public_dir, basepath)
 
 
 def main():
-	copy_directory_contents("static", "public")
-	generate_pages_recursive("content", "template.html", "public")
+	basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+	copy_directory_contents("static", "docs")
+	generate_pages_recursive("content", "template.html", "docs", basepath)
 
 
 if __name__ == "__main__":
