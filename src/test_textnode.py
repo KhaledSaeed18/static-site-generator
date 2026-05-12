@@ -7,6 +7,7 @@ from textnode import (
     text_node_to_html_node,
     split_nodes_image,
     split_nodes_link,
+    text_to_textnodes,
 )
 
 
@@ -301,6 +302,129 @@ class TestTextNode(unittest.TestCase):
                 TextNode("link", TextType.LINK, "https://example.com"),
             ],
             new_nodes,
+        )
+
+
+
+    def test_text_to_textnodes_complex(self):
+        """Test the main example from the assignment"""
+        text = "This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("text", TextType.BOLD),
+                TextNode(" with an ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" word and a ", TextType.TEXT),
+                TextNode("code block", TextType.CODE),
+                TextNode(" and an ", TextType.TEXT),
+                TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+                TextNode(" and a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://boot.dev"),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_only_text(self):
+        """Test with plain text only"""
+        text = "This is plain text"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [TextNode("This is plain text", TextType.TEXT)],
+            nodes,
+        )
+
+    def test_text_to_textnodes_only_bold(self):
+        """Test with only bold text"""
+        text = "**bold**"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [TextNode("bold", TextType.BOLD)],
+            nodes,
+        )
+
+    def test_text_to_textnodes_multiple_bold(self):
+        """Test with multiple bold sections"""
+        text = "**bold1** text **bold2**"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("bold1", TextType.BOLD),
+                TextNode(" text ", TextType.TEXT),
+                TextNode("bold2", TextType.BOLD),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_all_formats(self):
+        """Test with all formatting types"""
+        text = "**bold** _italic_ `code` ![image](url) [link](href)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("bold", TextType.BOLD),
+                TextNode(" ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" ", TextType.TEXT),
+                TextNode("code", TextType.CODE),
+                TextNode(" ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "url"),
+                TextNode(" ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "href"),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_multiple_links_images(self):
+        """Test with multiple links and images"""
+        text = "[link1](url1) and ![img1](img1) and [link2](url2)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("link1", TextType.LINK, "url1"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("img1", TextType.IMAGE, "img1"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("link2", TextType.LINK, "url2"),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_empty_string(self):
+        """Test with empty string"""
+        text = ""
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [TextNode("", TextType.TEXT)],
+            nodes,
+        )
+
+    def test_text_to_textnodes_image_with_complex_url(self):
+        """Test image with complex URL"""
+        text = "Before ![alt text with spaces](https://example.com/path/to/image.png?query=value) after"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("Before ", TextType.TEXT),
+                TextNode("alt text with spaces", TextType.IMAGE, "https://example.com/path/to/image.png?query=value"),
+                TextNode(" after", TextType.TEXT),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_bold_and_code(self):
+        """Test bold and code together"""
+        text = "**bold** and `code` together"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("bold", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("code", TextType.CODE),
+                TextNode(" together", TextType.TEXT),
+            ],
+            nodes,
         )
 
 
