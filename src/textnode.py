@@ -1,7 +1,7 @@
 import re
 from enum import Enum
 
-from htmlnode import LeafNode
+from htmlnode import LeafNode, ParentNode
 
 
 class TextType(Enum):
@@ -284,3 +284,107 @@ def block_to_block_type(block):
 	
 	# Default to paragraph
 	return BlockType.PARAGRAPH
+
+
+def text_to_children(text):
+	"""Convert text with inline markdown to a list of HTMLNodes.
+	
+	Args:
+		text: A string with inline markdown
+	
+	Returns:
+		A list of HTMLNode objects representing the inline markdown
+	"""
+	text_nodes = text_to_textnodes(text)
+	children = []
+	for text_node in text_nodes:
+		html_node = text_node_to_html_node(text_node)
+		children.append(html_node)
+	return children
+
+
+def markdown_to_html_node(markdown):
+	"""Convert a full markdown document to an HTMLNode.
+	
+	Args:
+		markdown: A raw markdown string
+	
+	Returns:
+		An HTMLNode with tag 'div' containing all block nodes as children
+	"""
+	blocks = markdown_to_blocks(markdown)
+	children = []
+	
+	for block in blocks:
+		block_type = block_to_block_type(block)
+		
+		if block_type == BlockType.PARAGRAPH:
+			# Replace newlines with spaces in paragraphs
+			paragraph_text = block.replace("\n", " ")
+			children_nodes = text_to_children(paragraph_text)
+			paragraph_node = ParentNode("p", children_nodes)
+			children.append(paragraph_node)
+		
+		elif block_type == BlockType.HEADING:
+			# Extract heading level and content
+			level = len(block) - len(block.lstrip("#"))
+			heading_text = block[level+1:]  # Skip '# ' or '## ' etc
+			children_nodes = text_to_children(heading_text)
+			heading_node = ParentNode(f"h{level}", children_nodes)
+			children.append(heading_node)
+		
+		elif block_type == BlockType.CODE:
+			# Code blocks: no inline parsing, preserve content as-is
+			# Remove the ``` markers
+			code_content = block[3:-3]
+			# Remove leading newline if present
+			if code_content.startswith("\n"):
+				code_content = code_content[1:]
+			code_leaf = LeafNode("code", code_content)
+			pre_node = ParentNode("pre", [code_leaf])
+			children.append(pre_node)
+		
+		elif block_type == BlockType.QUOTE:
+			# Quote block: remove > from each line and parse inline markdown
+			quote_lines = block.split("\n")
+			cleaned_lines = []
+			for line in quote_lines:
+				# Remove leading > and optional space
+				if line.startswith("> "):
+					cleaned_lines.append(line[2:])
+				elif line.startswith(">"):
+					cleaned_lines.append(line[1:])
+			quote_text = " ".join(cleaned_lines)
+			children_nodes = text_to_children(quote_text)
+			quote_node = ParentNode("blockquote", children_nodes)
+			children.append(quote_node)
+		
+		elif block_type == BlockType.UNORDERED_LIST:
+			# Unordered list: each line is an item
+			list_items = block.split("\n")
+			li_nodes = []
+			for item in list_items:
+				# Remove leading "- "
+				item_text = item[2:]
+				children_nodes = text_to_children(item_text)
+				li_node = ParentNode("li", children_nodes)
+				li_nodes.append(li_node)
+			ul_node = ParentNode("ul", li_nodes)
+			children.append(ul_node)
+		
+		elif block_type == BlockType.ORDERED_LIST:
+			# Ordered list: each line is an item
+			list_items = block.split("\n")
+			li_nodes = []
+			for item in list_items:
+				# Remove leading "1. " or "2. " etc
+				# Find the position of ". "
+				dot_pos = item.index(". ")
+				item_text = item[dot_pos+2:]
+				children_nodes = text_to_children(item_text)
+				li_node = ParentNode("li", children_nodes)
+				li_nodes.append(li_node)
+			ol_node = ParentNode("ol", li_nodes)
+			children.append(ol_node)
+	
+	return ParentNode("div", children)
