@@ -209,3 +209,28 @@ def text_to_textnodes(text):
 	nodes = split_nodes_image(nodes)
 	nodes = split_nodes_link(nodes)
 	return nodes
+
+
+def markdown_to_blocks(markdown):
+	"""Split a markdown string into blocks.
+	
+	Blocks are separated by blank lines (\n\n). Each block is stripped of
+	leading/trailing whitespace. Empty blocks are removed.
+	
+	Args:
+		markdown: A raw markdown string representing a full document
+	
+	Returns:
+		A list of block strings
+	"""
+	# Split by double newlines
+	blocks = markdown.split("\n\n")
+	
+	# Strip each block and filter out empty ones
+	filtered_blocks = []
+	for block in blocks:
+		stripped = block.strip()
+		if stripped:
+			filtered_blocks.append(stripped)
+	
+	return filtered_blocks
